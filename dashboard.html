@@ -990,22 +990,38 @@ function renderDashboard(sortedWeeks, COLS, COL_NAMES, resetDay, sources) {
   document.getElementById('legend').innerHTML = legendHtml
 }
 
-// ── Auto-load from query param (for launcher.js) ─────────────────────────────
+// ── Auto-load from query param (for launcher.js or demo) ─────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(location.search)
-  if (params.has('autoload')) {
+  const dataFile = params.has('demo') ? './demo_usage_data.json' :
+                   params.has('autoload') ? './usage_data.json' : null
+
+  if (dataFile) {
     try {
-      const resp = await fetch('./usage_data.json')
+      const resp = await fetch(dataFile)
       if (resp.ok) {
         const json = await resp.json()
-        // Inject as virtual file list and skip to step 3
-        const sources = json.sources || []
-        const allWeeks = json.weeks
-        if (allWeeks) {
-          // Pre-processed format from launcher.js
-          const COL_NAMES = json.colNames
-          const COLS = json.cols
-          const resetDay = json.resetDay
+        const sources = json.sources || json.meta?.devices || []
+        const resetDay = json.resetDay ?? json.meta?.resetDay ?? 3
+
+        // Support both launcher.js format (object) and demo format (array)
+        let allWeeks
+        if (Array.isArray(json.weeks)) {
+          // Demo format: convert array to object structure
+          allWeeks = {}
+          for (const week of json.weeks) {
+            const ws = week.weekStart
+            allWeeks[ws] = { entries: week.days, total: week.total }
+          }
+        } else {
+          // Launcher.js format: already object
+          allWeeks = json.weeks
+        }
+
+        if (allWeeks && Object.keys(allWeeks).length > 0) {
+          const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+          const COLS = Array.from({length:7}, (_,i) => (resetDay + i) % 7)
+          const COL_NAMES = COLS.map(d => DAY_NAMES[d])
           renderDashboard(Object.entries(allWeeks), COLS, COL_NAMES, resetDay, sources)
           goStep(3)
           return

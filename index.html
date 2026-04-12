@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Usage Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --text: #1A1A2E;
+    --text-muted: #6B6B80;
+    --accent: #E85D04;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .container {
+    max-width: 600px;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 60px 40px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(26,26,46,0.08);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+
+  h1 span { color: var(--accent); }
+
+  p {
+    color: var(--text-muted);
+    margin-bottom: 32px;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  .buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  a {
+    display: inline-block;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 15px;
+  }
+
+  .btn-primary {
+    background: var(--text);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--text-muted);
+  }
+
+  .btn-secondary:hover {
+    color: var(--text);
+    border-color: var(--text);
+  }
+
+  .info {
+    background: #F0EFE9;
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    text-align: left;
+    border-radius: 6px;
+    margin-top: 40px;
+    font-size: 13px;
+  }
+
+  .info strong { display: block; margin-bottom: 6px; color: var(--text); }
+
+  code {
+    background: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 12px;
+  }
+
+  @media (max-width: 500px) {
+    .container { padding: 40px 24px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Claude Usage <span>Dashboard</span></h1>
+  <p>Weekly token budget visualization for Claude Code across multiple devices.</p>
+
+  <div class="buttons">
+    <a href="dashboard.html?demo" class="btn-primary">View Demo</a>
+    <a href="dashboard.html" class="btn-secondary">Upload Your Data</a>
+  </div>
+
+  <div class="info">
+    <strong>📊 What is this?</strong>
+    A dashboard that visualizes your Claude Code token usage across days of the week. Run <code>ccusage</code> on your machine(s) and upload the JSON output to see your spending patterns.
+  </div>
+</div>
+
+</body>
+</html>
