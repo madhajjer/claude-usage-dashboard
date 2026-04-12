@@ -739,7 +739,11 @@ async function loadDemoData() {
     const allWeeks = {}
     for (const week of json.weeks) {
       const ws = week.weekStart
-      allWeeks[ws] = { entries: week.days, total: week.total }
+      const entries = {}
+      for (const [date, day] of Object.entries(week.days)) {
+        entries[date] = { ...day, _devices: day._devices || (day.device ? [day.device] : []) }
+      }
+      allWeeks[ws] = { entries, total: week.total }
     }
 
     const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -970,8 +974,8 @@ function renderDashboard(sortedWeeks, COLS, COL_NAMES, resetDay, sources) {
     // Week label cell
     const tdLabel = document.createElement('td')
     tdLabel.className = 'wk-label' + (isPartial ? ' partial' : '')
-    const endDate = new Date(ws + 'T00:00:00')
-    endDate.setDate(endDate.getDate() + 6)
+    const endDate = new Date(ws + 'T00:00:00Z')
+    endDate.setUTCDate(endDate.getUTCDate() + 6)
     const startFmt = ws.slice(5)  // MM-DD
     const endFmt = endDate.toISOString().slice(5,10)
     tdLabel.innerHTML = isPartial
@@ -982,9 +986,11 @@ function renderDashboard(sortedWeeks, COLS, COL_NAMES, resetDay, sources) {
     // Day cells
     COLS.forEach((dayNum, ci) => {
       const isReset = dayNum === resetDay
-      // find entry for this day in this week
-      const targetDate = new Date(ws + 'T00:00:00')
-      targetDate.setDate(targetDate.getDate() + ci)
+      // find entry for this day in this week by day-of-week offset (handles partial weeks)
+      const wsDate = new Date(ws + 'T00:00:00Z')
+      const offset = (dayNum - wsDate.getUTCDay() + 7) % 7
+      const targetDate = new Date(wsDate)
+      targetDate.setUTCDate(wsDate.getUTCDate() + offset)
       const dateStr = targetDate.toISOString().slice(0,10)
       const entry = week.entries[dateStr]
 
@@ -1066,7 +1072,11 @@ window.addEventListener('DOMContentLoaded', async () => {
           allWeeks = {}
           for (const week of json.weeks) {
             const ws = week.weekStart
-            allWeeks[ws] = { entries: week.days, total: week.total }
+            const entries = {}
+            for (const [date, day] of Object.entries(week.days)) {
+              entries[date] = { ...day, _devices: day._devices || (day.device ? [day.device] : []) }
+            }
+            allWeeks[ws] = { entries, total: week.total }
           }
         } else {
           // Launcher.js format: already object

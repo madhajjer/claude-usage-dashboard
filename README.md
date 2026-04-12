@@ -2,6 +2,8 @@
 
 Weekly token budget dashboard — see how your Claude spend distributes across each day of the week.
 
+![Claude Usage Matrix dashboard showing a weekly spend matrix with cost breakdowns per day](screenshot.png)
+
 ## Quick start
 
 ### Option A — Fully automated (recommended)
