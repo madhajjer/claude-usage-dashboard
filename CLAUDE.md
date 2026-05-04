@@ -16,7 +16,7 @@ Weekly token budget dashboard that visualizes Claude Code spend across days of t
 node launcher.js                        # default: port 3131, auto-opens browser
 node launcher.js --port 4000            # custom port
 node launcher.js --no-open              # skip auto-open
-node launcher.js --reset-day 1          # change week start (0=Sun … 6=Sat, default 3=Wed)
+node launcher.js --reset-day 1          # change week start (0=Sun … 6=Sat, default 2=Tue)
 MACHINE_NAME="MacBook" node launcher.js # custom device label
 ```
 
