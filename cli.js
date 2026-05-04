@@ -5,7 +5,7 @@
  * Terminal-native matrix visualization of token usage.
  *
  * Usage:
- *   node cli.js                   # default reset-day=3 (Wed)
+ *   node cli.js                   # default reset-day=2 (Tue)
  *   node cli.js --reset-day 1     # Mon-start
  *   node cli.js --no-color        # plain ASCII, no ANSI
  *   node cli.js --weeks N         # show last N weeks
@@ -18,7 +18,7 @@ const os = require('os')
 const args = process.argv.slice(2)
 const RESET_DAY = (() => {
   const i = args.indexOf('--reset-day')
-  return i !== -1 ? parseInt(args[i+1]) : 3 // default: Wednesday
+  return i !== -1 ? parseInt(args[i+1]) : 2 // default: Tuesday
 })()
 const NO_COLOR = args.includes('--no-color')
 const WEEKS_LIMIT = (() => {

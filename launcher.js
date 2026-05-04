@@ -22,7 +22,7 @@ const PORT = (() => {
 const NO_OPEN = args.includes('--no-open')
 const RESET_DAY = (() => {
   const i = args.indexOf('--reset-day')
-  return i !== -1 ? parseInt(args[i+1]) : 3 // default: Wednesday
+  return i !== -1 ? parseInt(args[i+1]) : 2 // default: Tuesday
 })()
 
 const DIST_DIR = __dirname
@@ -60,13 +60,19 @@ for (const e of dailyData) {
 }
 
 // Group into weeks
+function fmtLocal(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const da = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${da}`
+}
 function getWeekStart(dateStr) {
   const d = new Date(dateStr + 'T00:00:00')
   const day = d.getDay()
   const diff = (day - RESET_DAY + 7) % 7
   const start = new Date(d)
   start.setDate(d.getDate() - diff)
-  return start.toISOString().slice(0, 10)
+  return fmtLocal(start)
 }
 
 const weeks = {}

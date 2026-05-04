@@ -640,10 +640,9 @@
     <div class="config-row">
       <label>Weekly budget resets on</label>
       <select id="reset-day">
-        <option value="3" selected>Wednesday (default)</option>
         <option value="0">Sunday</option>
         <option value="1">Monday</option>
-        <option value="2">Tuesday</option>
+        <option value="2" selected>Tuesday (default)</option>
         <option value="3">Wednesday</option>
         <option value="4">Thursday</option>
         <option value="5">Friday</option>
@@ -864,7 +863,10 @@ async function processAndRender() {
       let diff = (day - resetDay + 7) % 7
       const wed = new Date(d)
       wed.setDate(d.getDate() - diff)
-      return wed.toISOString().slice(0,10)
+      const y = wed.getFullYear()
+      const m = String(wed.getMonth()+1).padStart(2,'0')
+      const da = String(wed.getDate()).padStart(2,'0')
+      return `${y}-${m}-${da}`
     }
 
     const weeks = {}
@@ -909,6 +911,13 @@ function renderDashboard(sortedWeeks, COLS, COL_NAMES, resetDay, sources) {
   const activeDays = allEntries.length
   const avgPerDay = totalCost / activeDays
   const maxWeek = Math.max(...sortedWeeks.map(([,w]) => w.total))
+  const totalTokens = allEntries.reduce((s,e) => s + (e.totalTokens || 0), 0)
+  const peakWeekEntry = sortedWeeks.find(([,w])=>w.total===maxWeek)
+  const peakWeekTokens = peakWeekEntry
+    ? Object.values(peakWeekEntry[1].entries).reduce((s,e) => s + (e.totalTokens || 0), 0)
+    : 0
+  const avgTokens = activeDays ? totalTokens / activeDays : 0
+  const fmtM = n => (n / 1e6).toFixed(n >= 1e7 ? 0 : 2) + 'M tokens'
 
   document.getElementById('dash-subtitle').textContent =
     `${sortedWeeks.length} weeks · ${activeDays} active days · ${sources.length} device${sources.length>1?'s':''}`
@@ -919,17 +928,17 @@ function renderDashboard(sortedWeeks, COLS, COL_NAMES, resetDay, sources) {
     <div class="stat-card">
       <div class="stat-label">Total spend</div>
       <div class="stat-val">$${totalCost.toFixed(2)}</div>
-      <div class="stat-sub">across all weeks</div>
+      <div class="stat-sub">${fmtM(totalTokens)} · across all weeks</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Peak week</div>
       <div class="stat-val">$${maxWeek.toFixed(2)}</div>
-      <div class="stat-sub">${sortedWeeks.find(([,w])=>w.total===maxWeek)?.[0] || ''}</div>
+      <div class="stat-sub">${fmtM(peakWeekTokens)} · ${peakWeekEntry?.[0] || ''}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Avg per active day</div>
       <div class="stat-val">$${avgPerDay.toFixed(2)}</div>
-      <div class="stat-sub">${activeDays} days recorded</div>
+      <div class="stat-sub">${fmtM(avgTokens)} · ${activeDays} days</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Devices tracked</div>
@@ -1063,7 +1072,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       if (resp.ok) {
         const json = await resp.json()
         const sources = json.sources || json.meta?.devices || []
-        const resetDay = json.resetDay ?? json.meta?.resetDay ?? 3
+        const resetDay = json.resetDay ?? json.meta?.resetDay ?? 2
 
         // Support both launcher.js format (object) and demo format (array)
         let allWeeks
