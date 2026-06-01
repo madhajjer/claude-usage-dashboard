@@ -2,3 +2,8 @@ node_modules/
 package.json
 package-lock.json
 usage_data.json
+*_usage_data.json
+"usage_data copy.json"
+usage_data copy.json
+block-dashboard/HANDOFF*
+ccusage/
