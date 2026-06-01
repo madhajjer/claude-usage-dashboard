@@ -380,6 +380,25 @@
     border-radius: var(--radius);
     padding: 16px 18px;
   }
+  .limit-layer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: -12px 0 20px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .limit-toggle { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
+  .limit-toggle input { cursor: pointer; }
+  .limit-input-wrap { display: inline-flex; align-items: center; gap: 6px; }
+  .limit-input-wrap input {
+    width: 90px; padding: 4px 8px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface); color: var(--text);
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  }
+  .limit-hint { font-size: 11px; color: var(--text-faint); }
   .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-faint); margin-bottom: 6px; }
   .stat-val { font-size: 22px; font-weight: 600; font-family: 'Syne', sans-serif; letter-spacing: -0.5px; color: var(--text); }
   .stat-sub { font-size: 11px; color: var(--text-faint); margin-top: 3px; }
@@ -695,6 +714,15 @@
     </div>
 
     <div class="stats-row" id="stats-row"></div>
+    <div class="limit-layer" id="limit-layer">
+      <label class="limit-toggle">
+        <input type="checkbox" id="limit-toggle"> Measure weeks vs weekly limit
+      </label>
+      <span class="limit-input-wrap" id="limit-input-wrap" style="display:none;">
+        limit&nbsp;$<input type="number" id="limit-value" min="0" step="1" placeholder="auto">
+        <span class="limit-hint">tip: calibrate from a known week — limit = week$ ÷ desktop% (e.g. $98 ÷ 0.67 ≈ 146)</span>
+      </span>
+    </div>
     <div class="matrix-wrap"><table class="matrix-table" id="matrix-table"></table></div>
     <div class="legend" id="legend"></div>
   </div>
@@ -704,6 +732,37 @@
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let uploadedFiles = []
+let lastRender = null  // remembers args so the limit-layer toggle can re-render
+
+// ── Weekly-limit layer (opt-in; default view is unchanged) ──────────────────
+function rerender() { if (lastRender) renderDashboard(...lastRender) }
+window.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('limit-toggle')
+  const wrap = document.getElementById('limit-input-wrap')
+  const value = document.getElementById('limit-value')
+  const savedOn = localStorage.getItem('limitLayerOn') === '1'
+  const savedVal = localStorage.getItem('limitLayerValue')
+  if (toggle) toggle.checked = savedOn
+  if (wrap) wrap.style.display = savedOn ? 'inline-flex' : 'none'
+  if (value && savedVal) value.value = savedVal
+  toggle?.addEventListener('change', () => {
+    wrap.style.display = toggle.checked ? 'inline-flex' : 'none'
+    localStorage.setItem('limitLayerOn', toggle.checked ? '1' : '0')
+    rerender()
+  })
+  value?.addEventListener('input', () => {
+    localStorage.setItem('limitLayerValue', value.value)
+    rerender()
+  })
+})
+
+// Returns the active weekly limit ($) when the layer is on, else null (default view).
+function getWeeklyLimit(maxWeek) {
+  const toggle = document.getElementById('limit-toggle')
+  if (!toggle || !toggle.checked) return null
+  const v = parseFloat(document.getElementById('limit-value')?.value)
+  return (v && v > 0) ? v : maxWeek  // blank input falls back to busiest week
+}
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 function goStep(n) {
@@ -901,12 +960,14 @@ function showError(msg) {
 
 // ── Dashboard Rendering ─────────────────────────────────────────────────────
 function renderDashboard(sortedWeeks, COLS, COL_NAMES, resetDay, sources) {
+  lastRender = [sortedWeeks, COLS, COL_NAMES, resetDay, sources]
   // Stats
   const totalCost = sortedWeeks.reduce((s,[,w]) => s+w.total, 0)
   const allEntries = sortedWeeks.flatMap(([,w]) => Object.values(w.entries))
   const activeDays = allEntries.length
   const avgPerDay = totalCost / activeDays
   const maxWeek = Math.max(...sortedWeeks.map(([,w]) => w.total))
+  const weeklyLimit = getWeeklyLimit(maxWeek)  // null => default "% of week" view
   const totalTokens = allEntries.reduce((s,e) => s + (e.totalTokens || 0), 0)
   const peakWeekEntry = sortedWeeks.find(([,w])=>w.total===maxWeek)
   const peakWeekTokens = peakWeekEntry
@@ -1007,7 +1068,8 @@ function renderDashboard(sortedWeeks, COLS, COL_NAMES, resetDay, sources) {
         return
       }
 
-      const pct = Math.round(entry.totalCost / week.total * 100)
+      // Default: share of the week. Layer on: share of the weekly limit.
+      const pct = Math.round(entry.totalCost / (weeklyLimit || week.total) * 100)
       const color = getCellColor(entry)
       td.className = 'day-cell' + (isReset ? ' reset-col' : '')
 
@@ -1026,8 +1088,9 @@ function renderDashboard(sortedWeeks, COLS, COL_NAMES, resetDay, sources) {
     // Total cell
     const tdTotal = document.createElement('td')
     tdTotal.className = 'total-cell'
+    const totalPct = weeklyLimit ? Math.round(week.total / weeklyLimit * 100) : 100
     tdTotal.innerHTML = `
-      <div class="total-pct">100%</div>
+      <div class="total-pct"${weeklyLimit && totalPct > 100 ? ' style="color:#DC2626;"' : ''}>${totalPct}%</div>
       <div class="total-amt">$${week.total.toFixed(2)}</div>`
     tr.appendChild(tdTotal)
 
@@ -1051,7 +1114,7 @@ function renderDashboard(sortedWeeks, COLS, COL_NAMES, resetDay, sources) {
     </div>`
   }
   legendHtml += `<div class="legend-item" style="margin-left:auto;">
-    <span style="font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">bar width = % of weekly spend</span>
+    <span style="font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">bar width = ${weeklyLimit ? '% of weekly limit ($'+weeklyLimit.toFixed(0)+')' : '% of weekly spend'}</span>
   </div>`
   document.getElementById('legend').innerHTML = legendHtml
 }
