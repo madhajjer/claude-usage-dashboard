@@ -1,0 +1,4 @@
+{"ts":"2026-06-14","type":"design/doc write","pred_k":"6-15","actual_k":"unknown_block_only","verdict":"BLIND","reason":"ccusage block-level=14.98M cumulative, cannot isolate single task; need delta-sample POP vs VERDICT","lever":"add block-delta sampling to RUN"}
+{"ts":"2026-06-14","pass":2,"type":"design/doc write","phase":"PREDICT","pred_k":"6-15","conf":0.30,"task":"write RUN-A-PASS.md runbook"}
+{"ts": "2026-06-14", "pass": 2, "phase": "SCORE", "type": "design/doc write", "pred_k": "6-15", "actual_k": 74.9, "err": 0.86, "verdict": "BLIND"}
+{"ts": "2026-06-14", "pass": 2, "phase": "RESCORE", "type": "design/doc write", "metric": "non_cache(input+output)", "actual_k": 11.0, "cache_overhead_k": 63.900000000000006, "err": 0.045, "verdict": "ON_BUDGET", "lesson": "measure non-cache tokens; cacheRead/Create is fixed per-turn context overhead, track separately"}
