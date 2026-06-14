@@ -43,9 +43,11 @@ The transcript path makes per-turn token accounting automatic, so the time loop 
 
 A third calibrated quantity: the **session limit cap**. Anthropic doesn't publish it and
 the model can't poll `/usage`, but pasting `/usage` once lets `time-calibration-loop/
-usagecal.py` back-compute it — `cap ≈ noncache_total / (session_pct/100)` — and store the
-median over pastes. Between pastes the `UserPromptSubmit` hook extrapolates the live % from
-the non-cache tokens `durations.log` already records (no ccusage call). So manual `/usage`
+usagecal.py` back-compute it — `cap ≈ total_tokens / (session_pct/100)` — and store the
+median over pastes. Basis is **total tokens** (incl cache), not non-cache: with ~97%
+cache-hit the quota follows total/cost, and non-cache was measured to be near-flat against
+`/usage`. Between pastes the `UserPromptSubmit` hook extrapolates the live % from the
+per-turn total tokens `durations.log` already records (no ccusage call). So manual `/usage`
 reads become a self-correcting limit prior, surfaced every turn as a labelled proxy.
 
 ## The shared core

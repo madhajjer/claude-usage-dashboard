@@ -90,8 +90,13 @@ def find_transcript(data):
 
 
 def turn_tokens(transcript, start_epoch):
-    """Sum (output_tokens, noncache_tokens) over assistant messages in this turn."""
-    out = nc = 0
+    """Sum (output, noncache, total) tokens over assistant messages in this turn.
+
+    total = input + output + cache_read + cache_creation — the cache-inclusive volume
+    the session quota actually tracks (the limit follows total/cost, not non-cache;
+    cache-hit ~97% means non-cache is near-flat while the limit still burns).
+    """
+    out = nc = tot = 0
     found = False
     try:
         with open(transcript) as f:
@@ -114,12 +119,15 @@ def turn_tokens(transcript, start_epoch):
                 u = (o.get("message") or {}).get("usage") or {}
                 ot = int(u.get("output_tokens") or 0)
                 it = int(u.get("input_tokens") or 0)
+                cr = int(u.get("cache_read_input_tokens") or 0)
+                cc = int(u.get("cache_creation_input_tokens") or 0)
                 out += ot
                 nc += it + ot
+                tot += it + ot + cr + cc
                 found = True
     except Exception:
-        return -1, -1
-    return (out, nc) if found else (-1, -1)
+        return -1, -1, -1
+    return (out, nc, tot) if found else (-1, -1, -1)
 
 
 # ---- log ------------------------------------------------------------------
@@ -134,11 +142,13 @@ def load_rows():
                 p = line.rstrip("\n").split("\t")
                 if len(p) < 2 or not p[1].isdigit():
                     continue
-                r = {"elapsed": int(p[1]), "out": None, "nc": None}
+                r = {"elapsed": int(p[1]), "out": None, "nc": None, "total": None}
                 if len(p) >= 3 and p[2].lstrip("-").isdigit() and int(p[2]) >= 0:
                     r["out"] = int(p[2])
                 if len(p) >= 4 and p[3].lstrip("-").isdigit() and int(p[3]) >= 0:
                     r["nc"] = int(p[3])
+                if len(p) >= 6 and p[4].lstrip("-").isdigit() and int(p[4]) >= 0:
+                    r["total"] = int(p[4])  # v3 rows only (6 fields); v2 p[4] is the tag
                 rows.append(r)
     except Exception:
         pass
@@ -183,13 +193,13 @@ def usage_line():
             with open(LOG) as f:
                 for line in f:
                     p = line.rstrip("\n").split("\t")
-                    if len(p) >= 4 and p[3].lstrip("-").isdigit() and int(p[3]) >= 0:
+                    if len(p) >= 6 and p[4].lstrip("-").isdigit() and int(p[4]) >= 0:
                         try:
                             rt = datetime.fromisoformat(p[0]).timestamp()
                         except Exception:
                             continue
                         if rt >= anchor:
-                            delta += int(p[3])
+                            delta += int(p[4])  # total tokens this turn
         except Exception:
             pass
     est = pct + (delta / cap * 100.0)
@@ -202,8 +212,8 @@ def usage_line():
     if st.get("session_reset"):
         tail += f"; resets {st['session_reset']}"
     return (f"Limit (proxy{age}): session ~{est:.0f}% used "
-            f"(anchor {pct:.0f}% + {delta/1000:.0f}k non-cache since; "
-            f"cap ~{cap/1e6:.2f}M non-cache){tail}.")
+            f"(anchor {pct:.0f}% + {delta/1e6:.1f}M total since; "
+            f"cap ~{cap/1e6:.0f}M total){tail}.")
 
 
 def main():
@@ -224,14 +234,14 @@ def main():
             elapsed = now - start
             if not (0 <= elapsed < MAX_PLAUSIBLE):
                 return
-            out = nc = -1
+            out = nc = tot = -1
             tr = find_transcript(data)
             if tr:
-                out, nc = turn_tokens(tr, start)
+                out, nc, tot = turn_tokens(tr, start)
             tag = read_tag(sid)
             with open(LOG, "a") as f:
                 f.write(f"{datetime.now().isoformat(timespec='seconds')}\t"
-                        f"{int(elapsed)}\t{out}\t{nc}\t{tag}\n")
+                        f"{int(elapsed)}\t{out}\t{nc}\t{tot}\t{tag}\n")
         except Exception:
             pass
         finally:
