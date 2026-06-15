@@ -6,6 +6,9 @@ import StatsBar from './components/StatsBar.vue'
 import BlockTimeline from './components/BlockTimeline.vue'
 import BlockCard from './components/BlockCard.vue'
 import { fmtHour, fmtTokens, fmtCost } from './format'
+import CalibrationApp from './calibration/CalibrationApp.vue'
+
+const view = ref<'blocks' | 'calibration'>('blocks')
 
 const {
   metric,
@@ -57,6 +60,12 @@ onMounted(async () => {
 
 <template>
   <div class="app">
+    <nav class="tabs">
+      <button :class="{ on: view === 'blocks' }" @click="view = 'blocks'">Blocks</button>
+      <button :class="{ on: view === 'calibration' }" @click="view = 'calibration'">Calibration</button>
+    </nav>
+    <CalibrationApp v-if="view === 'calibration'" />
+    <template v-else>
     <header class="head">
       <div>
         <h1>Block Usage Dashboard</h1>
@@ -143,10 +152,14 @@ onMounted(async () => {
     <footer class="foot">
       <span>Ceiling is <strong>inferred</strong> from your busiest observed block (ccusage convention) and is editable — it is not a verified plan cap.</span>
     </footer>
+    </template>
   </div>
 </template>
 
 <style scoped>
+.tabs { display: flex; gap: 4px; margin-bottom: 4px; }
+.tabs button { background: var(--track); border: 1px solid var(--border); color: var(--muted); padding: 6px 16px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.tabs button.on { background: var(--accent); color: #0b1020; }
 .app {
   max-width: 1180px;
   margin: 0 auto;

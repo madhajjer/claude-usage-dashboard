@@ -30,3 +30,4 @@ usage_data.json
 *.njsproj
 *.sln
 *.sw?
+public/calibration.json
