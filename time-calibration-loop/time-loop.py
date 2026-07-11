@@ -262,6 +262,55 @@ def load_task_types(priors_path=PRIORS):
     return types or DEFAULT_TYPES
 
 
+def load_budgets(priors_path=PRIORS):
+    """{tag: budget_k} from the priors table's 'budget (k)' column (header-matched)."""
+    budgets = {}
+    try:
+        with open(priors_path) as f:
+            col = None
+            for line in f:
+                s = line.strip()
+                if not s.startswith("|") or set(s) <= set("|-: "):
+                    continue
+                cells = [c.strip() for c in s.strip("|").split("|")]
+                if col is None:
+                    if "task-type" in s:
+                        col = next((i for i, c in enumerate(cells)
+                                    if c.lower().startswith("budget")), None)
+                        if col is None:
+                            return {}
+                    continue
+                if len(cells) > col:
+                    try:
+                        budgets[to_tag(cells[0])] = float(cells[col])
+                    except ValueError:
+                        pass
+    except Exception:
+        pass
+    return budgets
+
+
+def over_budget_lines(rows, min_n=3):
+    """Warning lines for task-types whose rolling median non-cache spend exceeds budget."""
+    budgets = load_budgets()
+    if not budgets:
+        return []
+    agg = {}
+    for r in rows:
+        tg = r.get("tag")
+        if tg in budgets and r.get("nc") is not None:
+            agg.setdefault(tg, []).append(r["nc"])
+    out = []
+    for tg, ncs in agg.items():
+        if len(ncs) < min_n:
+            continue
+        med = statistics.median(ncs)
+        if med > budgets[tg] * 1000:
+            out.append(f"  {tg}: rolling median {human_tok(med)} vs budget "
+                       f"{budgets[tg]:g}k (n={len(ncs)})")
+    return out
+
+
 def parse_task_type(pred, vocab=None):
     """First known task-type *mentioned* in a PREDICT line (by position), else 'untagged'."""
     if vocab is None:
@@ -519,6 +568,12 @@ def main():
         if type_lines:
             lines.append("Per task-type (recent — RECALL your row before predicting):")
             lines.extend(type_lines)
+        ob = over_budget_lines(rows[-80:])
+        if ob:
+            lines.append("OVER BUDGET (rolling median > target in token-priors.md — spend "
+                         "lean this turn: fewest reads that answer, no re-reads, terse "
+                         "output, per the token-efficient skill):")
+            lines.extend(ob)
         prior = (f"Calibration prior (last {len(recent)} turns, all task-types blended): "
                  f"time median {t_med} (range {t_lo}-{t_hi})")
         if toks:
